@@ -9,7 +9,8 @@ import Skeleton from "../../components/ui/Skeleton";
 import AvatarUpload from "../../components/ui/AvatarUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile } from "@/utils/auth/profile";
-import { getUserStats } from "@/utils/auth/stats";
+import { getUserStatsAction } from "./actions";
+import { useHydration } from "@/components/providers/HydrationProvider";
 import { generateAvatar } from "@/utils/avatar";
 import {
   uploadAvatar,
@@ -55,6 +56,7 @@ interface UserStats {
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const isHydrated = useHydration();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,32 +77,58 @@ export default function ProfilePage() {
     isVisible: false,
   });
 
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
+
   // Load profile and stats
   useEffect(() => {
-    if (user?.id) {
-      setIsLoading(true);
-      const timer = setTimeout(() => {
-        Promise.all([
-          getUserProfile(user.id),
-          getUserStats(user.id),
-          getAvatarUrl(user.id),
-        ])
-          .then(([profileData, statsData, avatarData]) => {
-            setProfile(profileData.profile);
-            setStats(statsData.stats.stats);
-            setAvatarUrl(avatarData);
-            setIsLoading(false);
-          })
-          .catch(() => {
-            setIsLoading(false);
-          });
-      });
+    // Only load data after hydration is complete
+    if (!isHydrated) return;
 
-      return () => clearTimeout(timer);
+    if (user?.id) {
+      const loadProfileData = async () => {
+        const startTime = Date.now();
+        const MIN_LOADING_DURATION = 800; // Minimum 800ms loading time
+
+        try {
+          setIsLoading(true);
+          setMinLoadingTime(true);
+
+          // Fetch all data in parallel
+          const [profileData, statsData, avatarData] = await Promise.all([
+            getUserProfile(user.id),
+            getUserStatsAction(),
+            getAvatarUrl(user.id),
+          ]);
+
+          // Set all data together
+          setProfile(profileData.profile);
+          if (statsData.success && statsData.stats) {
+            setStats(statsData.stats);
+          }
+          setAvatarUrl(avatarData);
+
+          // Ensure minimum loading time to prevent flicker
+          const elapsedTime = Date.now() - startTime;
+          if (elapsedTime < MIN_LOADING_DURATION) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, MIN_LOADING_DURATION - elapsedTime),
+            );
+          }
+        } catch (error) {
+          console.error("Error loading profile data:", error);
+        } finally {
+          setIsLoading(false);
+          // Small delay before hiding min loading time to ensure smooth transition
+          setTimeout(() => setMinLoadingTime(false), 100);
+        }
+      };
+
+      loadProfileData();
     } else {
       setIsLoading(false);
+      setMinLoadingTime(false);
     }
-  }, [user]);
+  }, [user, isHydrated]);
 
   // Update formData and preferencesData when profile loads
   useEffect(() => {
@@ -487,7 +515,7 @@ export default function ProfilePage() {
 
               {!isEditing ? (
                 <div className="flex items-center space-x-6">
-                  {isLoading || profile == null ? (
+                  {isLoading || minLoadingTime || profile == null ? (
                     <Skeleton className="w-24 h-24 rounded-full" />
                   ) : (
                     <>
@@ -645,7 +673,7 @@ export default function ProfilePage() {
 
               {!isEditingPreferences ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {isLoading || profile == null ? (
+                  {isLoading || minLoadingTime || profile == null ? (
                     <>
                       <div>
                         <Skeleton className="w-20 h-4 mb-2" />
@@ -759,7 +787,7 @@ export default function ProfilePage() {
               </h2>
 
               <div className="space-y-6">
-                {isLoading || profile == null ? (
+                {isLoading || minLoadingTime || profile == null ? (
                   <>
                     <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl">
                       <Skeleton className="w-20 h-8 mx-auto mb-3" />
