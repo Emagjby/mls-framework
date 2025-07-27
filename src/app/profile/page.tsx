@@ -9,7 +9,7 @@ import Skeleton from "../../components/ui/Skeleton";
 import AvatarUpload from "../../components/ui/AvatarUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile } from "@/utils/auth/profile";
-import { getUserStats } from "@/utils/auth/stats";
+import { getUserStatsAction } from "./actions";
 import { generateAvatar } from "@/utils/avatar";
 import {
   uploadAvatar,
@@ -82,12 +82,14 @@ export default function ProfilePage() {
       const timer = setTimeout(() => {
         Promise.all([
           getUserProfile(user.id),
-          getUserStats(user.id),
+          getUserStatsAction(),
           getAvatarUrl(user.id),
         ])
           .then(([profileData, statsData, avatarData]) => {
             setProfile(profileData.profile);
-            setStats(statsData.stats.stats);
+            if (statsData.success && statsData.stats) {
+              setStats(statsData.stats);
+            }
             setAvatarUrl(avatarData);
             setIsLoading(false);
           })

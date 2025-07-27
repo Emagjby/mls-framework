@@ -128,10 +128,13 @@ export default function QuizHeader({
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4">
               <div className="text-white font-bold text-base sm:text-lg">
-                {quiz.questions.reduce((sum, q) => sum + q.points, 0)}
+                {
+                  quiz.questions.filter((q) => q.type === "multiple_choice")
+                    .length
+                }
               </div>
               <div className="text-purple-100 text-xs sm:text-sm">
-                Total Points
+                Multi-Choice
               </div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 sm:p-4">

@@ -75,8 +75,8 @@ export default function StagePage() {
           courseSlug,
           currentStageOrderIndex,
         );
-        if (completionResult.success) {
-          setLessonCompleted(completionResult.data.isCompleted);
+        if (completionResult.success && completionResult.data) {
+          setLessonCompleted(completionResult.data.isCompleted || false);
         }
       } catch (err) {
         console.error("❌ [DEBUG] Error in loadData:", err);

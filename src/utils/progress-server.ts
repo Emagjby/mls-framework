@@ -107,7 +107,7 @@ export async function saveQuizProgressServer(
 
     return {
       success: true,
-      data,
+      data: data || undefined,
     };
   } catch (error) {
     console.error("Unexpected error in saveQuizProgressServer:", error);
@@ -215,7 +215,7 @@ export async function updateQuizProgressServer(
 
     return {
       success: true,
-      data,
+      data: data || undefined,
     };
   } catch (error) {
     console.error("Unexpected error in updateQuizProgressServer:", error);
