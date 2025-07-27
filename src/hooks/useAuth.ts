@@ -18,6 +18,7 @@ class AuthManager {
   private initialized = false;
   private subscription: { unsubscribe: () => void } | null = null;
   private initializationPromise: Promise<void> | null = null;
+  private isHydrating = true; // Track hydration state
 
   static getInstance(): AuthManager {
     if (!AuthManager.instance) {
@@ -34,6 +35,11 @@ class AuthManager {
         console.error("Error in auth listener:", error);
       }
     });
+  }
+
+  // Mark hydration as complete
+  setHydrationComplete() {
+    this.isHydrating = false;
   }
 
   async initialize() {
@@ -191,6 +197,10 @@ class AuthManager {
   getCurrentState() {
     return { ...this.authState, loading: this.loading };
   }
+
+  getHydrationState() {
+    return this.isHydrating;
+  }
 }
 
 export function useAuth() {
@@ -200,11 +210,17 @@ export function useAuth() {
     session: null,
   });
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const mountedRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
+    setMounted(true);
+
     const authManager = AuthManager.getInstance();
+
+    // Mark hydration as complete after mount
+    authManager.setHydrationComplete();
 
     // Initialize auth
     authManager.initialize().catch((error) => {
@@ -229,6 +245,17 @@ export function useAuth() {
     const authManager = AuthManager.getInstance();
     await authManager.refreshAuth();
   };
+
+  // Return consistent state during hydration
+  if (!mounted) {
+    return {
+      isLoggedIn: false,
+      user: null,
+      session: null,
+      loading: true,
+      refreshAuth,
+    };
+  }
 
   return {
     ...authState,

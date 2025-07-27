@@ -6,10 +6,12 @@ import Button from "../../components/ui/Button";
 import { fetchCourses, Course } from "../../utils/courses";
 import { getCoursesProgressAction, type CourseProgress } from "./actions";
 import { useAuth } from "@/hooks/useAuth";
+import { useHydration } from "@/components/providers/HydrationProvider";
 
 export default function CoursesPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const isHydrated = useHydration();
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseProgress, setCourseProgress] = useState<CourseProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +20,9 @@ export default function CoursesPage() {
   const [minLoadingTime, setMinLoadingTime] = useState(true);
 
   useEffect(() => {
+    // Only load data after hydration is complete
+    if (!isHydrated) return;
+
     const loadCoursesAndProgress = async () => {
       const startTime = Date.now();
       const MIN_LOADING_DURATION = 1300; // Increased to 1300ms (500ms more than before)
@@ -60,7 +65,7 @@ export default function CoursesPage() {
     };
 
     loadCoursesAndProgress();
-  }, [user]);
+  }, [user, isHydrated]);
 
   // Helper function to get progress for a specific course
   const getCourseProgress = useCallback(
@@ -480,25 +485,13 @@ export default function CoursesPage() {
         ) : (
           <div>
             {/* Started Courses */}
-            {renderSection(
-              "Continue Learning",
-              started,
-              "No courses in progress",
-            )}
+            {renderSection("Continue Learning", started)}
 
             {/* Available Courses */}
-            {renderSection(
-              "Available Courses",
-              available,
-              "No courses available",
-            )}
+            {renderSection("Available Courses", available)}
 
             {/* Completed Courses */}
-            {renderSection(
-              "Completed Courses",
-              completed,
-              "No completed courses",
-            )}
+            {renderSection("Completed Courses", completed)}
           </div>
         )}
       </div>

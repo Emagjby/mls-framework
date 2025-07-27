@@ -5,6 +5,7 @@ import ConditionalHeader from "../components/layout/ConditionalHeader";
 import ConditionalFooter from "../components/layout/ConditionalFooter";
 import StagewiseDevToolbar from "../components/StagewiseDevToolbar";
 import { ThemeProvider } from "../components/providers/ThemeProvider";
+import { HydrationProvider } from "../components/providers/HydrationProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,14 +22,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeProvider>
-          <StagewiseDevToolbar />
-          <div className="min-h-screen flex flex-col">
-            <ConditionalHeader />
-            <main className="flex-1">{children}</main>
-            <ConditionalFooter />
-          </div>
-        </ThemeProvider>
+        <HydrationProvider>
+          <ThemeProvider>
+            <StagewiseDevToolbar />
+            <div className="min-h-screen flex flex-col">
+              <ConditionalHeader />
+              <main className="flex-1">{children}</main>
+              <ConditionalFooter />
+            </div>
+          </ThemeProvider>
+        </HydrationProvider>
       </body>
     </html>
   );

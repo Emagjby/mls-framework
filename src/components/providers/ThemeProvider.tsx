@@ -1,7 +1,7 @@
 "use client";
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -9,9 +9,16 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    console.log("🎨 ThemeProvider mounted with props:", props);
-  }, [props]);
+    setMounted(true);
+  }, []);
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!mounted) {
+    return <div style={{ visibility: "hidden" }}>{children}</div>;
+  }
 
   return (
     <NextThemesProvider
