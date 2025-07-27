@@ -37,10 +37,7 @@ export async function updateSession(request: NextRequest) {
 
   try {
     // First try to refresh the session
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+    const { error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError) {
       console.warn("Session error in middleware:", sessionError);
@@ -54,13 +51,6 @@ export async function updateSession(request: NextRequest) {
     if (userError) {
       console.warn("User error in middleware:", userError);
     }
-
-    // Log auth state for debugging
-    console.log("Middleware auth state:", {
-      hasUser: !!user,
-      hasSession: !!session,
-      pathname: request.nextUrl.pathname,
-    });
 
     if (
       !user &&

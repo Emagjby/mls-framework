@@ -15,6 +15,7 @@ import {
   fetchQuizBySlugAndOrder,
   Quiz,
 } from "@/utils/quiz";
+import { saveQuizProgressAction } from "./actions";
 
 export default function QuizPage() {
   const params = useParams();
@@ -43,6 +44,7 @@ export default function QuizPage() {
   const [currentAnswerCorrect, setCurrentAnswerCorrect] = useState<
     boolean | null
   >(null);
+  const [savingProgress, setSavingProgress] = useState(false);
   const [notification, setNotification] = useState({
     isVisible: false,
     type: "info" as "success" | "error" | "info" | "warning",
@@ -91,18 +93,78 @@ export default function QuizPage() {
 
   const currentQuestion = quiz?.questions[quizState.currentQuestionIndex];
 
-  const handleFinishQuiz = useCallback(() => {
+  const handleFinishQuiz = useCallback(async () => {
     if (!quiz) return;
 
     const finalScore = calculateScore(quiz, quizState.answers);
+    const endTime = new Date();
+
     setQuizState((prev) => ({
       ...prev,
       isComplete: true,
       score: finalScore,
-      endTime: new Date(),
+      endTime: endTime,
     }));
+
+    // Calculate time taken in minutes
+    const timeTaken = Math.round(
+      (endTime.getTime() - quizState.startTime.getTime()) / 1000 / 60,
+    );
+
+    setSavingProgress(true);
+
+    try {
+      // Prepare progress data
+      const progressData = {
+        slug: courseSlug,
+        orderIndex: currentQuizOrderIndex,
+        score: finalScore,
+        timeTaken: timeTaken,
+      };
+
+      // Save or update progress using server action
+      const result = await saveQuizProgressAction(progressData);
+
+      if (result.success) {
+        console.log("Quiz progress saved successfully!");
+        // Optionally show success notification
+        setNotification({
+          isVisible: true,
+          type: "success",
+          title: "Progress Saved",
+          message: "Your quiz progress has been saved successfully!",
+        });
+      } else {
+        console.error("Failed to save quiz progress:", result.error);
+        // Show error notification
+        setNotification({
+          isVisible: true,
+          type: "error",
+          title: "Save Failed",
+          message: "Failed to save your progress. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Error saving quiz progress:", error);
+      // Show error notification
+      setNotification({
+        isVisible: true,
+        type: "error",
+        title: "Save Error",
+        message: "An error occurred while saving your progress.",
+      });
+    } finally {
+      setSavingProgress(false);
+    }
+
     setShowResults(true);
-  }, [quiz, quizState.answers]);
+  }, [
+    quiz,
+    quizState.answers,
+    quizState.startTime,
+    courseSlug,
+    currentQuizOrderIndex,
+  ]);
 
   // Timer effect
   useEffect(() => {
@@ -112,7 +174,8 @@ export default function QuizPage() {
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev === undefined || prev < 1) {
-          handleFinishQuiz();
+          // Handle async function properly
+          handleFinishQuiz().catch(console.error);
           return 0;
         }
         return prev - 1;
@@ -196,6 +259,9 @@ export default function QuizPage() {
     setShowFeedback(false);
     setCurrentAnswerCorrect(null);
     setTimeRemaining(quiz.timeLimit ? quiz.timeLimit * 60 : undefined);
+
+    // Clear any existing notifications
+    setNotification((prev) => ({ ...prev, isVisible: false }));
   };
 
   const closeNotification = () => {
@@ -635,7 +701,9 @@ export default function QuizPage() {
             {/* Result Icon */}
             <div className="flex justify-center mb-8">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl border border-white/30">
-                {isPassed ? (
+                {savingProgress ? (
+                  <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-white"></div>
+                ) : isPassed ? (
                   <svg
                     className="w-12 h-12 sm:w-16 sm:h-16 text-white"
                     fill="none"
@@ -668,7 +736,11 @@ export default function QuizPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-2xl">
-              {isPassed ? "Congratulations!" : "Keep Learning!"}
+              {savingProgress
+                ? "Saving Progress..."
+                : isPassed
+                  ? "Congratulations!"
+                  : "Keep Learning!"}
             </h1>
             <p className="text-white/90 text-lg sm:text-xl lg:text-2xl max-w-4xl mx-auto leading-relaxed font-light mb-12">
               {isPassed
@@ -789,7 +861,10 @@ export default function QuizPage() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button
             onClick={handleRetakeQuiz}
-            className="group relative bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-8 sm:px-12 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 text-lg font-bold transform hover:scale-105"
+            disabled={savingProgress}
+            className={`group relative bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-8 sm:px-12 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 text-lg font-bold transform hover:scale-105 ${
+              savingProgress ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
             <div className="relative flex items-center">
@@ -812,7 +887,10 @@ export default function QuizPage() {
 
           <Button
             onClick={() => router.push(`/course/${slug}/stage/${stageId}`)}
-            className="group relative bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-8 sm:px-12 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 text-lg font-bold transform hover:scale-105"
+            disabled={savingProgress}
+            className={`group relative bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-8 sm:px-12 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 text-lg font-bold transform hover:scale-105 ${
+              savingProgress ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
             <div className="relative flex items-center">
@@ -835,7 +913,10 @@ export default function QuizPage() {
 
           <Button
             onClick={() => router.push(`/course/${slug}`)}
-            className="group relative bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-8 sm:px-12 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 text-lg font-bold transform hover:scale-105"
+            disabled={savingProgress}
+            className={`group relative bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-8 sm:px-12 py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-500 text-lg font-bold transform hover:scale-105 ${
+              savingProgress ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             <div className="absolute inset-0 bg-white/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
             <div className="relative flex items-center">
