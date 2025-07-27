@@ -24,6 +24,7 @@ export default function LoginPage() {
   // Redirect logged-in users to home page
   useEffect(() => {
     if (!loading && isLoggedIn) {
+      router.refresh();
       router.push("/");
     }
   }, [isLoggedIn, loading, router]);
@@ -96,10 +97,16 @@ export default function LoginPage() {
       setIsLoading(false);
       setIsRedirecting(true);
 
-      // Redirect to home after a short delay to show the message
+      // Force router refresh and redirect immediately
+      router.refresh();
+      router.push("/");
+
+      // Fallback redirect using window.location if router doesn't work
       setTimeout(() => {
-        router.push("/");
-      }, 1000);
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
+      }, 500);
     } catch (error) {
       console.error("Login error:", error);
       setErrors({ general: "An unexpected error occurred" });
@@ -202,7 +209,10 @@ export default function LoginPage() {
                 <div className="text-center">
                   <button
                     type="button"
-                    onClick={() => router.push("/")}
+                    onClick={() => {
+                      router.refresh();
+                      router.push("/");
+                    }}
                     className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 underline font-medium"
                   >
                     Click here if not redirected automatically

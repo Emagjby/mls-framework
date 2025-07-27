@@ -10,22 +10,40 @@ import {
   Course,
   LearningStage,
 } from "@/utils/courses";
+import { getCourseProgressAction, type CourseProgressData } from "./actions";
+import { useAuth } from "@/hooks/useAuth";
+import { useHydration } from "@/components/providers/HydrationProvider";
 
 export default function CourseDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuth();
+  const isHydrated = useHydration();
   const courseSlug = params.slug as string;
   const [hoveredStage, setHoveredStage] = useState<string | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   const [stages, setStages] = useState<LearningStage[]>([]);
+  const [courseProgress, setCourseProgress] =
+    useState<CourseProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only load data after hydration is complete
+    if (!isHydrated) return;
+
     const loadCourseAndStages = async () => {
       try {
         setLoading(true);
-        const fetchedCourse = await fetchCourseBySlug(courseSlug);
+
+        // Fetch course data and progress data in parallel
+        const [fetchedCourse, progressResult] = await Promise.all([
+          fetchCourseBySlug(courseSlug),
+          user?.id
+            ? getCourseProgressAction(courseSlug)
+            : Promise.resolve({ success: true, data: null }),
+        ]);
+
         if (fetchedCourse) {
           setCourse(fetchedCourse);
           // Fetch stages for this course
@@ -33,6 +51,11 @@ export default function CourseDetailPage() {
           setStages(fetchedStages);
         } else {
           setError("Course not found");
+        }
+
+        // Set progress data if available
+        if (progressResult.success && progressResult.data) {
+          setCourseProgress(progressResult.data);
         }
       } catch (err) {
         setError("Failed to load course");
@@ -45,10 +68,53 @@ export default function CourseDetailPage() {
     if (courseSlug) {
       loadCourseAndStages();
     }
-  }, [courseSlug]);
+  }, [courseSlug, user, isHydrated]);
 
-  const getStatusIcon = (completed: boolean) => {
-    if (completed) {
+  const getStageProgress = (stageOrderIndex: number) => {
+    if (!courseProgress?.stageProgress) {
+      return { stageCompleted: false, quizCompleted: false };
+    }
+    return (
+      courseProgress.stageProgress.find(
+        (progress) => progress.stageOrderIndex === stageOrderIndex,
+      ) || { stageCompleted: false, quizCompleted: false }
+    );
+  };
+
+  const getCardColorClasses = (stageOrderIndex: number) => {
+    const progress = getStageProgress(stageOrderIndex);
+
+    if (!progress.stageCompleted) {
+      // Gray - not started
+      return {
+        background:
+          "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500",
+        icon: "bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400",
+        status: "text-gray-500 dark:text-gray-400",
+      };
+    } else if (progress.stageCompleted && !progress.quizCompleted) {
+      // Blue - in progress (stage complete, quiz not complete)
+      return {
+        background:
+          "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-600 hover:border-blue-300 dark:hover:border-blue-500",
+        icon: "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
+        status: "text-blue-600 dark:text-blue-400",
+      };
+    } else {
+      // Green - completed (both stage and quiz complete)
+      return {
+        background:
+          "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700 hover:border-green-300 dark:hover:border-green-600",
+        icon: "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
+        status: "text-green-600 dark:text-green-400",
+      };
+    }
+  };
+
+  const getStatusIcon = (stageOrderIndex: number) => {
+    const progress = getStageProgress(stageOrderIndex);
+
+    if (progress.stageCompleted && progress.quizCompleted) {
       return (
         <svg
           className="w-6 h-6 text-green-600 dark:text-green-400"
@@ -61,6 +127,22 @@ export default function CourseDetailPage() {
             strokeLinejoin="round"
             strokeWidth={2}
             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      );
+    } else if (progress.stageCompleted && !progress.quizCompleted) {
+      return (
+        <svg
+          className="w-6 h-6 text-blue-600 dark:text-blue-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
       );
@@ -82,11 +164,15 @@ export default function CourseDetailPage() {
     );
   };
 
-  const getStatusText = (completed: boolean, type: string) => {
-    if (completed) {
+  const getStatusText = (stageOrderIndex: number) => {
+    const progress = getStageProgress(stageOrderIndex);
+
+    if (progress.stageCompleted && progress.quizCompleted) {
       return "Completed";
+    } else if (progress.stageCompleted && !progress.quizCompleted) {
+      return "Quiz Pending";
     }
-    return type === "stage" ? "Not Started" : "Locked";
+    return "Not Started";
   };
 
   const getNextItem = () => {
@@ -206,17 +292,14 @@ export default function CourseDetailPage() {
                         strokeWidth="8"
                         fill="transparent"
                         strokeDasharray={`${2 * Math.PI * 40}`}
-                        strokeDashoffset={`${2 * Math.PI * 40 * (1 - ((course.completedStages / course.totalStages) * 100) / 100)}`}
+                        strokeDashoffset={`${2 * Math.PI * 40 * (1 - (courseProgress?.progress || 0) / 100)}`}
                         className="text-blue-600 transition-all duration-1000 ease-out"
                         strokeLinecap="round"
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-lg font-bold text-gray-900 dark:text-white">
-                        {Math.round(
-                          (course.completedStages / course.totalStages) * 100,
-                        )}
-                        %
+                        {courseProgress?.progress || 0}%
                       </span>
                     </div>
                   </div>
@@ -251,7 +334,7 @@ export default function CourseDetailPage() {
                       </span>
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white mr-1">
-                      {course.totalStages}
+                      {courseProgress?.totalStages || course.totalStages}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
@@ -276,7 +359,7 @@ export default function CourseDetailPage() {
                       </span>
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white mr-1">
-                      {course.completedStages}
+                      {courseProgress?.completedCount || 0}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
@@ -377,102 +460,102 @@ export default function CourseDetailPage() {
 
               <div className="p-6">
                 <div className="space-y-4">
-                  {stages.map((stage: LearningStage, index: number) => (
-                    <div
-                      key={stage.id}
-                      className={`group relative p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${
-                        stage.completed
-                          ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700 shadow-lg"
-                          : hoveredStage === stage.id
-                            ? "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-600 shadow-lg"
-                            : "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500"
-                      }`}
-                      onMouseEnter={() => setHoveredStage(stage.id)}
-                      onMouseLeave={() => setHoveredStage(null)}
-                      onClick={() =>
-                        router.push(
-                          `/course/${courseSlug}/stage/${stage.order_index}`,
-                        )
-                      }
-                    >
-                      <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0">
-                          <div
-                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all duration-300 ${
-                              stage.completed
-                                ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                                : "bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
-                            }`}
-                          >
-                            {getStatusIcon(stage.completed)}
-                          </div>
-                        </div>
+                  {stages.map((stage: LearningStage, index: number) => {
+                    const colorClasses = getCardColorClasses(stage.order_index);
+                    const progress = getStageProgress(stage.order_index);
 
-                        <div className="flex-1 min-w-0">
-                          <div className="mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                              {stage.name}
-                            </h3>
+                    return (
+                      <div
+                        key={stage.id}
+                        className={`group relative p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${colorClasses.background} ${
+                          hoveredStage === stage.id ? "shadow-lg" : ""
+                        }`}
+                        onMouseEnter={() => setHoveredStage(stage.id)}
+                        onMouseLeave={() => setHoveredStage(null)}
+                        onClick={() =>
+                          router.push(
+                            `/course/${courseSlug}/stage/${stage.order_index}`,
+                          )
+                        }
+                      >
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <div
+                              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all duration-300 ${colorClasses.icon}`}
+                            >
+                              {getStatusIcon(stage.order_index)}
+                            </div>
                           </div>
 
-                          <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                            <span className="flex items-center space-x-1">
-                              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-                              <span>Lesson</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-                              <span>Quiz</span>
-                            </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="mb-2">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                {stage.name}
+                              </h3>
+                            </div>
+
+                            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                              <span className="flex items-center space-x-1">
+                                <span
+                                  className={`w-2 h-2 rounded-full ${progress.stageCompleted ? "bg-green-400" : "bg-gray-400"}`}
+                                ></span>
+                                <span>Lesson</span>
+                              </span>
+                              <span className="flex items-center space-x-1">
+                                <span
+                                  className={`w-2 h-2 rounded-full ${progress.quizCompleted ? "bg-green-400" : "bg-gray-400"}`}
+                                ></span>
+                                <span>Quiz</span>
+                              </span>
+                            </div>
+
+                            <div className="mt-3">
+                              <span
+                                className={`text-sm font-medium ${colorClasses.status}`}
+                              >
+                                {getStatusText(stage.order_index)}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="mt-3">
-                            <span
-                              className={`text-sm font-medium ${
-                                stage.completed
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-gray-500 dark:text-gray-400"
+                          <div className="flex-shrink-0 flex flex-col items-center space-y-2">
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                progress.stageCompleted &&
+                                progress.quizCompleted
+                                  ? "bg-green-500 text-white"
+                                  : progress.stageCompleted
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-gray-200 dark:bg-gray-600 text-gray-400"
                               }`}
                             >
-                              {getStatusText(stage.completed, "stage")}
-                            </span>
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold">
+                              {index + 1}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="flex-shrink-0 flex flex-col items-center space-y-2">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                              stage.completed
-                                ? "bg-green-500 text-white"
-                                : "bg-gray-200 dark:bg-gray-600 text-gray-400"
-                            }`}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 5l7 7-7 7"
-                              />
-                            </svg>
-                          </div>
-                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold">
-                            {index + 1}
-                          </div>
-                        </div>
+                        {/* Hover Effect */}
+                        {hoveredStage === stage.id && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl pointer-events-none"></div>
+                        )}
                       </div>
-
-                      {/* Hover Effect */}
-                      {hoveredStage === stage.id && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl pointer-events-none"></div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
