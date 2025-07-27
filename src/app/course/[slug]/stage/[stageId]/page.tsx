@@ -9,6 +9,7 @@ import {
   StageDetail,
   fetchCourseBySlug,
 } from "@/utils/courses";
+import { checkStageCompletion, markStageComplete } from "./actions";
 
 export default function StagePage() {
   const params = useParams();
@@ -17,6 +18,7 @@ export default function StagePage() {
 
   const [lessonCompleted, setLessonCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingCompletion, setCheckingCompletion] = useState(true);
   const [currentStage, setCurrentStage] = useState<StageDetail | null>(null);
   const [currentCourse, setCurrentCourse] = useState<{ name: string } | null>(
     null,
@@ -67,6 +69,15 @@ export default function StagePage() {
           console.error("❌ [DEBUG] No stage returned, setting error");
           setError("Stage not found");
         }
+
+        // Check if user has completed this stage
+        const completionResult = await checkStageCompletion(
+          courseSlug,
+          currentStageOrderIndex,
+        );
+        if (completionResult.success) {
+          setLessonCompleted(completionResult.data.isCompleted);
+        }
       } catch (err) {
         console.error("❌ [DEBUG] Error in loadData:", err);
         setError("Failed to load data");
@@ -74,6 +85,7 @@ export default function StagePage() {
       } finally {
         console.log("🔍 [DEBUG] Setting loading to false");
         setLoading(false);
+        setCheckingCompletion(false);
       }
     };
 
@@ -174,10 +186,24 @@ export default function StagePage() {
 
   const handleMarkComplete = async () => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setLessonCompleted(true);
-    setIsLoading(false);
+
+    try {
+      const result = await markStageComplete(
+        courseSlug,
+        currentStageOrderIndex,
+      );
+
+      if (result.success) {
+        setLessonCompleted(true);
+      } else {
+        console.error("Failed to mark stage complete:", result.error);
+        // You could add a notification here for error handling
+      }
+    } catch (error) {
+      console.error("Error marking stage complete:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePreviousStage = () => {
@@ -480,7 +506,7 @@ export default function StagePage() {
                   <span className="font-medium">Back to Course</span>
                 </Button>
 
-                {!lessonCompleted ? (
+                {!lessonCompleted && !checkingCompletion ? (
                   <Button
                     onClick={handleMarkComplete}
                     disabled={isLoading}
