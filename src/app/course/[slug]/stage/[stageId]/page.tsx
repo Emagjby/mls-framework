@@ -9,7 +9,7 @@ import {
   StageDetail,
   fetchCourseBySlug,
 } from "@/utils/courses";
-import { checkStageCompletion, markStageComplete } from "./actions";
+import { markStageCompleteClient } from "@/utils/progress-client";
 
 export default function StagePage() {
   const params = useParams();
@@ -70,14 +70,8 @@ export default function StagePage() {
           setError("Stage not found");
         }
 
-        // Check if user has completed this stage
-        const completionResult = await checkStageCompletion(
-          courseSlug,
-          currentStageOrderIndex,
-        );
-        if (completionResult.success && completionResult.data) {
-          setLessonCompleted(completionResult.data.isCompleted || false);
-        }
+        // For client-side, we'll check completion when needed
+        // Initial state is not completed
       } catch (err) {
         console.error("❌ [DEBUG] Error in loadData:", err);
         setError("Failed to load data");
@@ -188,7 +182,7 @@ export default function StagePage() {
     setIsLoading(true);
 
     try {
-      const result = await markStageComplete(
+      const result = await markStageCompleteClient(
         courseSlug,
         currentStageOrderIndex,
       );

@@ -9,8 +9,8 @@ import Skeleton from "../../components/ui/Skeleton";
 import AvatarUpload from "../../components/ui/AvatarUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile } from "@/utils/auth/profile";
-import { getUserStatsAction } from "./actions";
-import { useHydration } from "@/components/providers/HydrationProvider";
+import { getUserStatsClient } from "@/utils/progress-client";
+
 import { generateAvatar } from "@/utils/avatar";
 import {
   uploadAvatar,
@@ -56,7 +56,6 @@ interface UserStats {
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useAuth();
-  const isHydrated = useHydration();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,9 +80,6 @@ export default function ProfilePage() {
 
   // Load profile and stats
   useEffect(() => {
-    // Only load data after hydration is complete
-    if (!isHydrated) return;
-
     if (user?.id) {
       const loadProfileData = async () => {
         const startTime = Date.now();
@@ -96,14 +92,14 @@ export default function ProfilePage() {
           // Fetch all data in parallel
           const [profileData, statsData, avatarData] = await Promise.all([
             getUserProfile(user.id),
-            getUserStatsAction(),
+            getUserStatsClient(),
             getAvatarUrl(user.id),
           ]);
 
           // Set all data together
           setProfile(profileData.profile);
-          if (statsData.success && statsData.stats) {
-            setStats(statsData.stats);
+          if (statsData) {
+            setStats(statsData);
           }
           setAvatarUrl(avatarData);
 
@@ -128,7 +124,7 @@ export default function ProfilePage() {
       setIsLoading(false);
       setMinLoadingTime(false);
     }
-  }, [user, isHydrated]);
+  }, [user]);
 
   // Update formData and preferencesData when profile loads
   useEffect(() => {

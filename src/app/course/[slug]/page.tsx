@@ -10,15 +10,16 @@ import {
   Course,
   LearningStage,
 } from "@/utils/courses";
-import { getCourseProgressAction, type CourseProgressData } from "./actions";
+import {
+  getCourseProgress,
+  type CourseProgressData,
+} from "@/utils/progress-client";
 import { useAuth } from "@/hooks/useAuth";
-import { useHydration } from "@/components/providers/HydrationProvider";
 
 export default function CourseDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user } = useAuth();
-  const isHydrated = useHydration();
   const courseSlug = params.slug as string;
   const [hoveredStage, setHoveredStage] = useState<string | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
@@ -29,19 +30,14 @@ export default function CourseDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only load data after hydration is complete
-    if (!isHydrated) return;
-
     const loadCourseAndStages = async () => {
       try {
         setLoading(true);
 
         // Fetch course data and progress data in parallel
-        const [fetchedCourse, progressResult] = await Promise.all([
+        const [fetchedCourse, progressData] = await Promise.all([
           fetchCourseBySlug(courseSlug),
-          user?.id
-            ? getCourseProgressAction(courseSlug)
-            : Promise.resolve({ success: true, data: null }),
+          user?.id ? getCourseProgress(courseSlug) : Promise.resolve(null),
         ]);
 
         if (fetchedCourse) {
@@ -54,8 +50,8 @@ export default function CourseDetailPage() {
         }
 
         // Set progress data if available
-        if (progressResult.success && progressResult.data) {
-          setCourseProgress(progressResult.data);
+        if (progressData) {
+          setCourseProgress(progressData);
         }
       } catch (err) {
         setError("Failed to load course");
@@ -68,7 +64,7 @@ export default function CourseDetailPage() {
     if (courseSlug) {
       loadCourseAndStages();
     }
-  }, [courseSlug, user, isHydrated]);
+  }, [courseSlug, user]);
 
   const getStageProgress = (stageOrderIndex: number) => {
     if (!courseProgress?.stageProgress) {

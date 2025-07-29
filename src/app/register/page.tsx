@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
-import { signup } from "./actions";
+import { signupUser } from "@/utils/auth-client";
 import { logSessionInfo } from "@/utils/supabase/client-logger";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterPage() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { isLoggedIn, loading } = useAuth();
 
@@ -69,6 +70,26 @@ export default function RegisterPage() {
     }
   };
 
+  const handleSubmit = async (formData: FormData) => {
+    setIsLoading(true);
+    setErrors({});
+
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const fullName = formData.get("fullName") as string;
+
+    const result = await signupUser(email, password, fullName);
+
+    if (!result.success) {
+      setErrors({ general: result.error || "Registration failed" });
+      setIsLoading(false);
+      return;
+    }
+
+    // Successful registration - redirect
+    router.push(result.redirectTo || "/check-email");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
@@ -99,6 +120,13 @@ export default function RegisterPage() {
 
         {/* Form Card */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+          {errors.general && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+              <p className="text-red-600 dark:text-red-400 text-sm">
+                {errors.general}
+              </p>
+            </div>
+          )}
           <form className="space-y-6">
             <Input
               type="text"
@@ -165,9 +193,10 @@ export default function RegisterPage() {
               variant="primary"
               size="lg"
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 py-4 text-lg font-semibold"
-              formAction={signup}
+              formAction={handleSubmit}
+              disabled={isLoading}
             >
-              Create Account
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 

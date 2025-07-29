@@ -15,7 +15,7 @@ import {
   fetchQuizBySlugAndOrder,
   Quiz,
 } from "@/utils/quiz";
-import { saveQuizProgressAction } from "./actions";
+import { saveQuizProgressClient } from "@/utils/progress-client";
 
 export default function QuizPage() {
   const params = useParams();
@@ -114,16 +114,13 @@ export default function QuizPage() {
     setSavingProgress(true);
 
     try {
-      // Prepare progress data
-      const progressData = {
-        slug: courseSlug,
-        orderIndex: currentQuizOrderIndex,
-        score: finalScore,
-        timeTaken: timeTaken,
-      };
-
-      // Save or update progress using server action
-      const result = await saveQuizProgressAction(progressData);
+      // Save or update progress using client-side function
+      const result = await saveQuizProgressClient(
+        courseSlug,
+        currentQuizOrderIndex,
+        finalScore,
+        timeTaken,
+      );
 
       if (result.success) {
         console.log("Quiz progress saved successfully!");

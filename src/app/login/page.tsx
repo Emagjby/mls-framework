@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
-import { createClient } from "@/utils/supabase/client";
+import { loginUser } from "@/utils/auth-client";
 import { logSessionInfo } from "@/utils/supabase/client-logger";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -77,41 +77,31 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrors({});
 
-    try {
-      const supabase = createClient();
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-      const data = {
-        email: formData.get("email") as string,
-        password: formData.get("password") as string,
-      };
+    const result = await loginUser(email, password);
 
-      const { error } = await supabase.auth.signInWithPassword(data);
-
-      if (error) {
-        setErrors({ general: error.message });
-        setIsLoading(false);
-        return;
-      }
-
-      // Successful login - show redirecting message
+    if (!result.success) {
+      setErrors({ general: result.error || "Login failed" });
       setIsLoading(false);
-      setIsRedirecting(true);
-
-      // Force router refresh and redirect immediately
-      router.refresh();
-      router.push("/");
-
-      // Fallback redirect using window.location if router doesn't work
-      setTimeout(() => {
-        if (typeof window !== "undefined") {
-          window.location.href = "/";
-        }
-      }, 500);
-    } catch (error) {
-      console.error("Login error:", error);
-      setErrors({ general: "An unexpected error occurred" });
-      setIsLoading(false);
+      return;
     }
+
+    // Successful login - show redirecting message
+    setIsLoading(false);
+    setIsRedirecting(true);
+
+    // Force router refresh and redirect immediately
+    router.refresh();
+    router.push(result.redirectTo || "/");
+
+    // Fallback redirect using window.location if router doesn't work
+    setTimeout(() => {
+      if (typeof window !== "undefined") {
+        window.location.href = result.redirectTo || "/";
+      }
+    }, 500);
   };
 
   return (
