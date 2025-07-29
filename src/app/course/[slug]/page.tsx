@@ -10,15 +10,16 @@ import {
   Course,
   LearningStage,
 } from "@/utils/courses";
-import { getCourseProgressAction, type CourseProgressData } from "./actions";
+import {
+  getCourseProgress,
+  type CourseProgressData,
+} from "@/utils/progress-client";
 import { useAuth } from "@/hooks/useAuth";
-import { useHydration } from "@/components/providers/HydrationProvider";
 
 export default function CourseDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user } = useAuth();
-  const isHydrated = useHydration();
   const courseSlug = params.slug as string;
   const [hoveredStage, setHoveredStage] = useState<string | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
@@ -29,19 +30,14 @@ export default function CourseDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only load data after hydration is complete
-    if (!isHydrated) return;
-
     const loadCourseAndStages = async () => {
       try {
         setLoading(true);
 
         // Fetch course data and progress data in parallel
-        const [fetchedCourse, progressResult] = await Promise.all([
+        const [fetchedCourse, progressData] = await Promise.all([
           fetchCourseBySlug(courseSlug),
-          user?.id
-            ? getCourseProgressAction(courseSlug)
-            : Promise.resolve({ success: true, data: null }),
+          user?.id ? getCourseProgress(courseSlug) : Promise.resolve(null),
         ]);
 
         if (fetchedCourse) {
@@ -54,8 +50,8 @@ export default function CourseDetailPage() {
         }
 
         // Set progress data if available
-        if (progressResult.success && progressResult.data) {
-          setCourseProgress(progressResult.data);
+        if (progressData) {
+          setCourseProgress(progressData);
         }
       } catch (err) {
         setError("Failed to load course");
@@ -68,7 +64,7 @@ export default function CourseDetailPage() {
     if (courseSlug) {
       loadCourseAndStages();
     }
-  }, [courseSlug, user, isHydrated]);
+  }, [courseSlug, user]);
 
   const getStageProgress = (stageOrderIndex: number) => {
     if (!courseProgress?.stageProgress) {
@@ -237,20 +233,20 @@ export default function CourseDetailPage() {
       <CourseHeader />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-8 mb-12 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 p-4 sm:p-8 mb-8 sm:mb-12 shadow-2xl">
           <div className="absolute inset-0 bg-black/10"></div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-white/10 rounded-full -translate-y-16 sm:-translate-y-32 translate-x-16 sm:translate-x-32"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-white/5 rounded-full translate-y-12 sm:translate-y-24 -translate-x-12 sm:-translate-x-24"></div>
 
-          <div className="relative z-10 flex items-start space-x-6">
-            <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-5xl shadow-lg">
+          <div className="relative z-10 flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl sm:text-5xl shadow-lg flex-shrink-0">
               {course.icon}
             </div>
             <div className="flex-1">
-              <h1 className="text-4xl font-bold text-white mb-3 drop-shadow-lg">
+              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 sm:mb-3 drop-shadow-lg">
                 {course.name}
               </h1>
-              <p className="text-xl text-blue-100 mb-6 max-w-2xl leading-relaxed">
+              <p className="text-base sm:text-xl text-blue-100 mb-4 sm:mb-6 max-w-2xl leading-relaxed">
                 {course.description}
               </p>
             </div>
@@ -263,16 +259,16 @@ export default function CourseDetailPage() {
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
               {/* Progress Card */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
                   Your Progress
                 </h3>
 
                 {/* Circular Progress */}
                 <div className="flex items-center justify-center">
-                  <div className="relative w-24 h-24">
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24">
                     <svg
-                      className="w-24 h-24 transform -rotate-90"
+                      className="w-20 h-20 sm:w-24 sm:h-24 transform -rotate-90"
                       viewBox="0 0 100 100"
                     >
                       <circle
@@ -298,7 +294,7 @@ export default function CourseDetailPage() {
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                      <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                         {courseProgress?.progress || 0}%
                       </span>
                     </div>
@@ -307,16 +303,16 @@ export default function CourseDetailPage() {
               </div>
 
               {/* Quick Stats */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
                   Course Overview
                 </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
                         <svg
-                          className="w-4 h-4 text-blue-600 dark:text-blue-400"
+                          className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -329,11 +325,11 @@ export default function CourseDetailPage() {
                           />
                         </svg>
                       </div>
-                      <span className="text-gray-700 dark:text-gray-300">
+                      <span className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
                         Stages
                       </span>
                     </div>
-                    <span className="font-semibold text-gray-900 dark:text-white mr-1">
+                    <span className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mr-1">
                       {courseProgress?.totalStages || course.totalStages}
                     </span>
                   </div>
@@ -449,17 +445,17 @@ export default function CourseDetailPage() {
           {/* Course Content */}
           <div className="lg:col-span-2">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
                   Course Content
                 </h2>
-                <p className="text-gray-600 dark:text-gray-300">
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                   Complete each stage to unlock the next one
                 </p>
               </div>
 
-              <div className="p-6">
-                <div className="space-y-4">
+              <div className="p-4 sm:p-6">
+                <div className="space-y-3 sm:space-y-4">
                   {stages.map((stage: LearningStage, index: number) => {
                     const colorClasses = getCardColorClasses(stage.order_index);
                     const progress = getStageProgress(stage.order_index);
@@ -467,7 +463,7 @@ export default function CourseDetailPage() {
                     return (
                       <div
                         key={stage.id}
-                        className={`group relative p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${colorClasses.background} ${
+                        className={`group relative p-4 sm:p-6 rounded-2xl border-2 transition-all duration-300 cursor-pointer transform hover:scale-[1.02] ${colorClasses.background} ${
                           hoveredStage === stage.id ? "shadow-lg" : ""
                         }`}
                         onMouseEnter={() => setHoveredStage(stage.id)}
@@ -478,10 +474,10 @@ export default function CourseDetailPage() {
                           )
                         }
                       >
-                        <div className="flex items-start space-x-4">
+                        <div className="flex items-start space-x-3 sm:space-x-4">
                           <div className="flex-shrink-0">
                             <div
-                              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all duration-300 ${colorClasses.icon}`}
+                              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl transition-all duration-300 ${colorClasses.icon}`}
                             >
                               {getStatusIcon(stage.order_index)}
                             </div>
@@ -489,38 +485,38 @@ export default function CourseDetailPage() {
 
                           <div className="flex-1 min-w-0">
                             <div className="mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                 {stage.name}
                               </h3>
                             </div>
 
-                            <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="flex items-center space-x-3 sm:space-x-4 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                               <span className="flex items-center space-x-1">
                                 <span
-                                  className={`w-2 h-2 rounded-full ${progress.stageCompleted ? "bg-green-400" : "bg-gray-400"}`}
+                                  className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${progress.stageCompleted ? "bg-green-400" : "bg-gray-400"}`}
                                 ></span>
                                 <span>Lesson</span>
                               </span>
                               <span className="flex items-center space-x-1">
                                 <span
-                                  className={`w-2 h-2 rounded-full ${progress.quizCompleted ? "bg-green-400" : "bg-gray-400"}`}
+                                  className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${progress.quizCompleted ? "bg-green-400" : "bg-gray-400"}`}
                                 ></span>
                                 <span>Quiz</span>
                               </span>
                             </div>
 
-                            <div className="mt-3">
+                            <div className="mt-2 sm:mt-3">
                               <span
-                                className={`text-sm font-medium ${colorClasses.status}`}
+                                className={`text-xs sm:text-sm font-medium ${colorClasses.status}`}
                               >
                                 {getStatusText(stage.order_index)}
                               </span>
                             </div>
                           </div>
 
-                          <div className="flex-shrink-0 flex flex-col items-center space-y-2">
+                          <div className="flex-shrink-0 flex flex-col items-center space-y-1 sm:space-y-2">
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                              className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                                 progress.stageCompleted &&
                                 progress.quizCompleted
                                   ? "bg-green-500 text-white"
@@ -530,7 +526,7 @@ export default function CourseDetailPage() {
                               }`}
                             >
                               <svg
-                                className="w-4 h-4"
+                                className="w-3 h-3 sm:w-4 sm:h-4"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -543,7 +539,7 @@ export default function CourseDetailPage() {
                                 />
                               </svg>
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold">
                               {index + 1}
                             </div>
                           </div>

@@ -4,14 +4,24 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Button from "../../components/ui/Button";
 import { fetchCourses, Course } from "../../utils/courses";
-import { getCoursesProgressAction, type CourseProgress } from "./actions";
+import { getAllCoursesProgress } from "@/utils/progress-client";
 import { useAuth } from "@/hooks/useAuth";
-import { useHydration } from "@/components/providers/HydrationProvider";
+
+// Define the CourseProgress type locally since we're not using server actions anymore
+interface CourseProgress {
+  courseId: string;
+  progress: number;
+  completedStages: number;
+  totalStages: number;
+  completedQuizzes: number;
+  totalQuizzes: number;
+  isCompleted: boolean;
+  hasStarted: boolean;
+}
 
 export default function CoursesPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const isHydrated = useHydration();
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseProgress, setCourseProgress] = useState<CourseProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,9 +30,6 @@ export default function CoursesPage() {
   const [minLoadingTime, setMinLoadingTime] = useState(true);
 
   useEffect(() => {
-    // Only load data after hydration is complete
-    if (!isHydrated) return;
-
     const loadCoursesAndProgress = async () => {
       const startTime = Date.now();
       const MIN_LOADING_DURATION = 1300; // Increased to 1300ms (500ms more than before)
@@ -32,19 +39,22 @@ export default function CoursesPage() {
         setMinLoadingTime(true);
 
         // Fetch both courses and progress data in parallel
-        const [fetchedCourses, progressResult] = await Promise.all([
+        const [fetchedCourses, progressData] = await Promise.all([
           fetchCourses(),
-          user?.id
-            ? getCoursesProgressAction()
-            : Promise.resolve({ success: true, progress: [] }),
+          user?.id ? getAllCoursesProgress() : Promise.resolve([]),
         ]);
 
         // Set courses only after we have both data
         setCourses(fetchedCourses);
 
-        // Set progress data if we fetched it
-        if (progressResult.success && progressResult.progress) {
-          setCourseProgress(progressResult.progress);
+        // Set progress data if we fetched it and add computed properties
+        if (progressData) {
+          const progressWithComputedProps = progressData.map((progress) => ({
+            ...progress,
+            isCompleted: progress.progress >= 100,
+            hasStarted: progress.progress > 0,
+          }));
+          setCourseProgress(progressWithComputedProps);
         }
 
         // Ensure minimum loading time to prevent flicker
@@ -65,7 +75,7 @@ export default function CoursesPage() {
     };
 
     loadCoursesAndProgress();
-  }, [user, isHydrated]);
+  }, [user]);
 
   // Helper function to get progress for a specific course
   const getCourseProgress = useCallback(

@@ -3,15 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Button from "../ui/Button";
-import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { logoutUser } from "@/utils/auth-client";
 import { ThemeToggle } from "../ui/ThemeToggle";
 
 export default function Header() {
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const supabase = createClient();
   const router = useRouter();
 
   const { isLoggedIn, loading, refreshAuth } = useAuth();
@@ -56,15 +55,14 @@ export default function Header() {
     try {
       console.log("🔍 Starting logout process...");
 
-      // First, sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      const result = await logoutUser();
 
-      if (error) {
-        console.error("❌ Logout error:", error);
+      if (!result.success) {
+        console.error("❌ Logout error:", result.error);
         return;
       }
 
-      console.log("✅ Supabase logout successful");
+      console.log("✅ Logout successful");
 
       // Force refresh the auth state
       await refreshAuth();

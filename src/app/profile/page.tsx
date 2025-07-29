@@ -9,8 +9,8 @@ import Skeleton from "../../components/ui/Skeleton";
 import AvatarUpload from "../../components/ui/AvatarUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile } from "@/utils/auth/profile";
-import { getUserStatsAction } from "./actions";
-import { useHydration } from "@/components/providers/HydrationProvider";
+import { getUserStatsClient } from "@/utils/progress-client";
+
 import { generateAvatar } from "@/utils/avatar";
 import {
   uploadAvatar,
@@ -56,7 +56,6 @@ interface UserStats {
 export default function ProfilePage() {
   const router = useRouter();
   const { user } = useAuth();
-  const isHydrated = useHydration();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,9 +80,6 @@ export default function ProfilePage() {
 
   // Load profile and stats
   useEffect(() => {
-    // Only load data after hydration is complete
-    if (!isHydrated) return;
-
     if (user?.id) {
       const loadProfileData = async () => {
         const startTime = Date.now();
@@ -96,14 +92,14 @@ export default function ProfilePage() {
           // Fetch all data in parallel
           const [profileData, statsData, avatarData] = await Promise.all([
             getUserProfile(user.id),
-            getUserStatsAction(),
+            getUserStatsClient(),
             getAvatarUrl(user.id),
           ]);
 
           // Set all data together
           setProfile(profileData.profile);
-          if (statsData.success && statsData.stats) {
-            setStats(statsData.stats);
+          if (statsData) {
+            setStats(statsData);
           }
           setAvatarUrl(avatarData);
 
@@ -128,7 +124,7 @@ export default function ProfilePage() {
       setIsLoading(false);
       setMinLoadingTime(false);
     }
-  }, [user, isHydrated]);
+  }, [user]);
 
   // Update formData and preferencesData when profile loads
   useEffect(() => {
@@ -452,7 +448,7 @@ export default function ProfilePage() {
         onClose={closeNotification}
       />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Hero Header */}
         <div className="text-center mb-16">
           <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-xl">
@@ -483,9 +479,9 @@ export default function ProfilePage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Profile Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-8 shadow-lg border border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
                   Personal Information
                 </h2>
                 {!isEditing && (
@@ -539,10 +535,10 @@ export default function ProfilePage() {
                         </div>
                       )}
                       <div>
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                        <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-2">
                           {profile?.full_name || "User"}
                         </h3>
-                        <p className="text-gray-600 dark:text-gray-300 text-lg">
+                        <p className="text-gray-600 dark:text-gray-300 text-base md:text-lg">
                           {profile?.email}
                         </p>
                         <div className="flex items-center mt-3 text-sm text-gray-500 dark:text-gray-400">
@@ -635,9 +631,9 @@ export default function ProfilePage() {
             </div>
 
             {/* Preferences Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-8 shadow-lg border border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">
                   Preferences
                 </h2>
                 {!isEditingPreferences && (
@@ -781,8 +777,8 @@ export default function ProfilePage() {
           {/* Sidebar */}
           <div className="space-y-8">
             {/* Stats Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-8">
                 Learning Stats
               </h2>
 
@@ -807,7 +803,7 @@ export default function ProfilePage() {
                 ) : (
                   <>
                     <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl">
-                      <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                      <div className="text-2xl md:text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
                         {stats?.average_score || 0}%
                       </div>
                       <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">
@@ -817,7 +813,7 @@ export default function ProfilePage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                        <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
+                        <div className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400 mb-1">
                           {stats?.completed_courses || 0}
                         </div>
                         <div className="text-xs text-green-700 dark:text-green-300 font-medium">
@@ -825,7 +821,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                        <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
+                        <div className="text-xl md:text-2xl font-bold text-purple-600 dark:text-purple-400 mb-1">
                           {stats?.total_courses || 0}
                         </div>
                         <div className="text-xs text-purple-700 dark:text-purple-300 font-medium">
@@ -860,8 +856,8 @@ export default function ProfilePage() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-6">
                 Quick Actions
               </h2>
 
@@ -933,8 +929,8 @@ export default function ProfilePage() {
             </div>
 
             {/* Account Actions */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white mb-6">
                 Account
               </h2>
 
