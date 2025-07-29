@@ -1,242 +1,316 @@
-# MLS Framework
+# 🎓 MLS Framework - Modular Learning System
 
-A powerful, modular learning engine API with a demo UI. Build your own learning applications by integrating with our RESTful API endpoints.
+[![Next.js](https://img.shields.io/badge/Next.js-15.3.5-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-green?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![Capacitor](https://img.shields.io/badge/Capacitor-Mobile-purple?style=for-the-badge&logo=capacitor)](https://capacitorjs.com/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0-38bdf8?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 
-## 🚀 What is MLS Framework?
+> **A powerful, modern learning management system built for the future of education.**
 
-MLS (Modular Learning System) is a **learning engine** that provides:
+## ✨ Features
 
-- **Course Management**: Create, update, and organize learning content
-- **Progress Tracking**: Monitor user progress across courses and stages
-- **Quiz System**: Interactive assessments with scoring and feedback
-- **User Management**: Authentication and profile management
-- **Flexible Architecture**: Use our API with any frontend framework
+### 🎯 **Core Learning Features**
 
-## 🎯 Demo vs. Production
+- **📚 Course Management** - Complete course structure with stages and lessons
+- **🧠 Interactive Quizzes** - Multiple choice and single choice questions
+- **📊 Progress Tracking** - Real-time learning progress and analytics
+- **🏆 Achievement System** - Track completion rates and scores
+- **👤 User Profiles** - Personalized learning dashboards
 
-This repository includes:
+### 🔐 **Authentication & Security**
 
-- ✅ **Complete API** with all endpoints
-- ✅ **Demo UI** built with Next.js (for testing and reference)
-- ✅ **Database Schema** ready for production
-- ✅ **Authentication** with Supabase Auth
-- ✅ **Documentation** for easy integration
+- **🔑 Secure Authentication** - Email/password with Supabase Auth
+- **🛡️ Row Level Security** - Database-level security policies
+- **🔄 Session Management** - Persistent login across devices
+- **📧 Email Verification** - Secure account activation
 
-**You can:**
+### 📱 **Mobile-First Design**
 
-- Use the demo UI to test the API
-- Build your own UI using any framework (React, Vue, Angular, etc.)
-- Deploy the API separately from your frontend
-- Customize the learning experience for your specific needs
+- **📲 Native Mobile Apps** - iOS & Android via Capacitor
+- **🌙 Dark Mode** - Beautiful dark theme by default
+- **📏 Safe Area Support** - Native safe area handling
+- **⚡ Fullscreen Experience** - Immersive mobile interface
+- **📐 Responsive Design** - Perfect on all screen sizes
 
-## 🛠️ Quick Start
+### 🚀 **Performance & Tech**
 
-### 1. Clone and Setup
+- **⚡ Next.js 15** - Latest React framework with Turbopack
+- **🎯 Client-Side Architecture** - Optimized for mobile deployment
+- **📦 Production Ready** - Webpack optimizations and code splitting
+- **🔧 TypeScript** - Full type safety throughout
+- **🎨 Modern UI** - TailwindCSS with custom components
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Mobile App    │    │   Web Browser   │    │  Next.js Server │
+│   (Capacitor)   │◄──►│   (React SPA)   │◄──►│  (Production)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 ▼
+                    ┌─────────────────────────┐
+                    │   Supabase Backend      │
+                    │  ┌─────────────────┐    │
+                    │  │   PostgreSQL    │    │
+                    │  │   Database      │    │
+                    │  └─────────────────┘    │
+                    │  ┌─────────────────┐    │
+                    │  │ Authentication  │    │
+                    │  │   & Security    │    │
+                    │  └─────────────────┘    │
+                    └─────────────────────────┘
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js 18+**
+- **npm or yarn**
+- **Supabase account**
+- **Android Studio** (for mobile builds)
+- **Xcode** (for iOS builds)
+
+### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-username/mls-framework.git
+git clone https://github.com/yourusername/mls-framework.git
 cd mls-framework
 npm install
 ```
 
 ### 2. Environment Setup
 
-Create a `.env.local` file:
+Create `.env.local`:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
 ### 3. Database Setup
 
-Run the database migrations:
-
 ```bash
-npm run db:setup
+# Run the SQL setup file in your Supabase dashboard
+# File: supabase-setup.sql
 ```
 
-### 4. Start Development
+### 4. Development Server
 
 ```bash
 npm run dev
+# Opens at http://localhost:3000
 ```
 
-Visit `http://localhost:3000` to see the demo UI.
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-
-```http
-POST /api/auth/login
-POST /api/auth/register
-POST /api/auth/logout
-GET /api/auth/user
-```
-
-### Course Management
-
-```http
-GET /api/courses
-GET /api/courses/[id]
-POST /api/courses
-PUT /api/courses/[id]
-DELETE /api/courses/[id]
-```
-
-### Learning Progress
-
-```http
-GET /api/progress/user/[userId]
-POST /api/progress/update
-GET /api/progress/course/[courseId]
-```
-
-### Quiz System
-
-```http
-GET /api/quizzes/[id]
-POST /api/quizzes/submit
-GET /api/quizzes/results/[id]
-```
-
-## 🔧 Integration Guide
-
-### For React Developers
-
-```javascript
-// Example: Fetching courses
-const fetchCourses = async () => {
-  const response = await fetch("/api/courses", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
-  return response.json();
-};
-```
-
-### For Vue.js Developers
-
-```javascript
-// Example: Submitting quiz answers
-const submitQuiz = async (quizId, answers) => {
-  const response = await fetch(`/api/quizzes/submit`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ quizId, answers }),
-  });
-  return response.json();
-};
-```
-
-### For Mobile Apps (React Native)
-
-```javascript
-// Example: Tracking progress
-const updateProgress = async (stageId, completed) => {
-  const response = await fetch("/api/progress/update", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ stageId, completed }),
-  });
-  return response.json();
-};
-```
-
-## 🎨 Customizing the UI
-
-### Option 1: Use the Demo UI as Starting Point
-
-1. Fork this repository
-2. Replace the UI components in `src/components/`
-3. Customize the styling and layout
-4. Keep the API integration intact
-
-### Option 2: Build Your Own UI from Scratch
-
-1. Use only the API endpoints
-2. Build your UI with any framework
-3. Follow the API documentation
-4. Implement your own authentication flow
-
-### Option 3: Use as Headless CMS
-
-1. Deploy the API separately
-2. Use it as a backend for multiple frontends
-3. Create different UIs for different use cases
-
-## 📊 Database Schema
-
-The engine uses a flexible schema that supports:
-
-- **Users**: Authentication and profiles
-- **Courses**: Learning content organization
-- **Stages**: Individual learning modules
-- **Quizzes**: Assessment and testing
-- **Progress**: User learning tracking
-- **Results**: Quiz scores and analytics
-
-## 🚀 Deployment
-
-### API Deployment
+### 5. Production Build
 
 ```bash
-# Deploy to Vercel
-vercel --prod
-
-# Deploy to Railway
-railway up
-
-# Deploy to Heroku
-heroku create
-git push heroku main
+npm run build
+npm start
+# Production server at http://localhost:3000
 ```
 
-### Database Deployment
+## 📱 Mobile Development
 
-1. Set up Supabase project
-2. Run migrations
-3. Configure environment variables
-4. Deploy API
+### Android Setup
 
-## 🤝 Contributing
+```bash
+# Add Android platform
+npx cap add android
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+# Copy web assets
+npx cap copy android
 
-## 📄 License
+# Open in Android Studio
+npx cap open android
+```
 
-MIT License - see LICENSE file for details
+### iOS Setup
 
-## 🆘 Support
+```bash
+# Add iOS platform
+npx cap add ios
 
-- 📖 [Full API Documentation](./docs/API.md)
-- 🎯 [Integration Examples](./docs/EXAMPLES.md)
-- 🐛 [Report Issues](https://github.com/your-username/mls-framework/issues)
-- 💬 [Discussions](https://github.com/your-username/mls-framework/discussions)
+# Copy web assets
+npx cap copy ios
 
-## 🎉 What's Next?
+# Open in Xcode
+npx cap open ios
+```
 
-- [ ] Add more quiz types (multiple choice, fill-in-blank, etc.)
-- [ ] Implement spaced repetition algorithms
-- [ ] Add analytics and reporting
-- [ ] Create mobile SDKs
-- [ ] Build admin dashboard
-- [ ] Add content management system
+### Build APK
+
+```bash
+cd android
+./gradlew assembleDebug    # Debug APK
+./gradlew assembleRelease  # Production APK
+```
+
+## 🗄️ Database Schema
+
+### Core Tables
+
+- **`users`** - User profiles and authentication
+- **`courses`** - Course information and metadata
+- **`learning_stages`** - Individual lessons within courses
+- **`quizzes`** - Quiz questions and answers
+- **`user_quiz_progress`** - Quiz completion and scores
+- **`user_learning_stage_progress`** - Stage completion tracking
+
+### Key Features
+
+- **Row Level Security (RLS)** on all tables
+- **Automatic timestamps** for created_at/updated_at
+- **Foreign key relationships** for data integrity
+- **Optimized indexes** for performance
+
+## 🎨 UI Components
+
+### Custom Components
+
+- **`Button`** - Consistent button styling
+- **`Card`** - Content containers
+- **`Input`** - Form inputs with validation
+- **`CourseHeader`** - Course navigation
+- **`QuizHeader`** - Quiz progress display
+- **`ThemeToggle`** - Dark/light mode switcher
+
+### Layout Components
+
+- **`Header`** - Navigation and user menu
+- **`Footer`** - Site information
+- **`ConditionalHeader/Footer`** - Route-based visibility
+
+## 📊 Progress Tracking
+
+### Quiz Progress
+
+```typescript
+interface QuizProgress {
+  score: number; // Percentage score
+  is_completed: boolean; // Completion status
+  attempts_count: number; // Number of attempts
+  best_score: number; // Highest score achieved
+  time_taken: number; // Time in minutes
+  completed_at: string; // ISO timestamp
+}
+```
+
+### Course Progress
+
+- **Stages Completed** / Total Stages
+- **Quizzes Completed** / Total Quizzes
+- **Overall Progress** = (Completed Items) / (Total Items) × 100
+
+## 🔧 Configuration
+
+### Capacitor Config
+
+```typescript
+// capacitor.config.ts
+const config: CapacitorConfig = {
+  appId: "com.mls.app",
+  appName: "mls-framework",
+  webDir: "public",
+  server: {
+    url: "https://yourdomain.com", // Production URL
+    cleartext: false,
+  },
+  plugins: {
+    StatusBar: {
+      style: "dark",
+      backgroundColor: "#000000",
+      overlaysWebView: true, // Android fullscreen
+    },
+  },
+};
+```
+
+### Next.js Config
+
+```typescript
+// next.config.ts
+const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "ui-avatars.com" },
+    ],
+  },
+};
+```
+
+### Web Deployment
+
+1. **Build the app**: `npm run build`
+2. **Deploy to hosting**:
+   - **Vercel**: `vercel deploy`
+   - **Netlify**: Connect GitHub repo
+   - **Custom Server**: Upload `/.next` folder
+
+### Mobile Deployment
+
+1. **Update Capacitor config** with production URL
+2. **Copy assets**: `npx cap copy android`
+3. **Build APK**: `./gradlew assembleRelease`
+4. **Sign APK** for Play Store
+5. **Upload to stores**
+
+## 📁 Project Structure
+
+```
+mls-framework/
+├── src/
+│   ├── app/                 # Next.js App Router
+│   │   ├── auth/           # Authentication routes
+│   │   ├── course/         # Course pages
+│   │   ├── courses/        # Course listing
+│   │   ├── login/          # Login page
+│   │   ├── profile/        # User profile
+│   │   └── register/       # Registration
+│   ├── components/         # React components
+│   │   ├── auth/          # Auth components
+│   │   ├── layout/        # Layout components
+│   │   ├── quiz/          # Quiz components
+│   │   └── ui/            # UI components
+│   ├── hooks/             # Custom React hooks
+│   └── utils/             # Utility functions
+├── android/               # Android Capacitor project
+├── ios/                   # iOS Capacitor project
+├── public/               # Static assets
+├── plans/                # Development documentation
+└── supabase-setup.sql    # Database setup
+```
+
+1. **Fork the repository**
+2. **Create feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit changes**: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open Pull Request**
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## 🙏 Acknowledgments
+
+- **Next.js Team** - Amazing React framework
+- **Supabase** - Backend as a Service
+- **Capacitor** - Cross-platform mobile development
+- **TailwindCSS** - Utility-first CSS framework
+- **Vercel** - Deployment platform
+
+## 📞 Support
+
+- **Documentation**: [View Docs](https://github.com/yourusername/mls-framework/wiki)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/mls-framework/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/mls-framework/discussions)
 
 ---
 
-**Built with ❤️ for the learning community**
+<div align="center">
+
+[Demo](https://your-demo-url.com) • [Documentation](https://your-docs-url.com) • [Report Bug](https://github.com/yourusername/mls-framework/issues)
+
+</div>
