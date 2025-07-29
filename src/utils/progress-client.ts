@@ -270,6 +270,67 @@ export async function saveQuizProgressClient(
 }
 
 /**
+ * Check if a specific stage is completed by the user (client-side)
+ */
+export async function checkStageCompletion(
+  courseSlug: string,
+  stageOrderIndex: number,
+): Promise<{ isCompleted: boolean; error?: string }> {
+  try {
+    const supabase = createClient();
+
+    // Get the current authenticated user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return { isCompleted: false, error: "User not authenticated" };
+    }
+
+    // Get the course ID from the slug
+    const { data: courseData, error: courseError } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("slug", courseSlug)
+      .single();
+
+    if (courseError || !courseData) {
+      return { isCompleted: false, error: "Course not found" };
+    }
+
+    // Get the stage ID from course_id and order_index
+    const { data: stageData, error: stageError } = await supabase
+      .from("learning_stages")
+      .select("id")
+      .eq("course_id", courseData.id)
+      .eq("order_index", stageOrderIndex)
+      .single();
+
+    if (stageError || !stageData) {
+      return { isCompleted: false, error: "Stage not found" };
+    }
+
+    // Check if user has completed this stage
+    const { data: progressData, error: progressError } = await supabase
+      .from("user_learning_stage_progress")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("learning_stage_id", stageData.id)
+      .single();
+
+    if (progressError && progressError.code !== "PGRST116") {
+      return { isCompleted: false, error: "Failed to check stage completion" };
+    }
+
+    return { isCompleted: !!progressData };
+  } catch (error) {
+    console.error("Error in checkStageCompletion:", error);
+    return { isCompleted: false, error: "An unexpected error occurred" };
+  }
+}
+
+/**
  * Mark stage as complete (client-side)
  */
 export async function markStageCompleteClient(
