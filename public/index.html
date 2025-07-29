@@ -2,30 +2,63 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>MLS Framework</title>
-    <script>
-      // Redirect to Next.js dev server
-      window.location.href = "http://192.168.2.105:3000";
-    </script>
-  </head>
-  <body>
-    <div
-      style="
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #000;
+        color: white;
+        font-family: Arial, sans-serif;
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
-        font-family: Arial, sans-serif;
-      "
-    >
-      <div style="text-align: center">
-        <h1>MLS Framework</h1>
-        <p>Loading...</p>
-        <p>
-          <a href="http://192.168.2.105:3000">Click here if not redirected</a>
-        </p>
-      </div>
+      }
+      .container {
+        text-align: center;
+      }
+      .loading {
+        font-size: 18px;
+        margin-bottom: 20px;
+      }
+      .spinner {
+        border: 3px solid #333;
+        border-top: 3px solid #fff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="spinner"></div>
+      <div class="loading">Loading MLS Framework...</div>
+      <p>Starting the application...</p>
     </div>
+
+    <script>
+      // For production, we'll need to serve this through a local server
+      // This is a placeholder that shows loading while the app initializes
+      setTimeout(() => {
+        document.querySelector(".loading").textContent = "Application Ready!";
+        // In a real production setup, this would load the actual app
+      }, 2000);
+    </script>
   </body>
 </html>
